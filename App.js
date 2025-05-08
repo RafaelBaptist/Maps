@@ -6,13 +6,7 @@ export default class App extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      region: {
-        latitude: -22.722321840810423,
-        longitude: -43.3184095851323,
-        latitudeDelta: 0.0922,
-        longitudeDelta: 0.0421,
-      },
-
+      region: null,
       texto: '',
       markers: [
         {
@@ -27,12 +21,29 @@ export default class App extends Component {
         },
       ],
     };
-
-    this.newMarker = this.newMarker.bind(this);
-    this.mapChanged = this.mapChanged.bind(this);
   }
 
-  newMarker(e) {
+  componentDidMount = async () => {
+    await navigator.geolocation.getCurrentPosition(
+      async ({coords: {latitude, longitude}}) => {
+        this.setState({
+          region: {
+            latitude,
+            longitude,
+            latitudeDelta: 0.005,
+            longitudeDelta: 0.005,
+          },
+        });
+      },
+      () => {},
+      {
+        timeout: 2000,
+        maximumAge: 1000,
+      },
+    );
+  };
+
+  newMarker = e => {
     const coordinate = e.nativeEvent.coordinate;
     Alert.alert(
       'Confirmação',
@@ -63,36 +74,37 @@ export default class App extends Component {
       ],
       {cancelable: true},
     );
-  }
+  };
 
-  mapChanged(region) {
+  mapChanged = region => {
     this.setState({
-      texto: region.latitude,
-      region: {
-        latitude: region.latitude,
-        longitude: region.longitude,
-        latitudeDelta: 0.0922,
-        longitudeDelta: 0.0421,
-      },
+      texto: `Lat: ${region.latitude.toFixed(
+        6,
+      )}, Long: ${region.longitude.toFixed(6)}`,
     });
-  }
+  };
 
   render() {
     const {region, texto, markers} = this.state;
     return (
       <View style={styles.container}>
         <StatusBar barStyle="dark-content" />
-        <Text style={styles.latLong}>
-          {region.latitude} | {region.longitude}
-        </Text>
-        <Text style={styles.latLong}>latitude atual</Text>
+        {/* <Text style={styles.latLong}>
+          {region?.latitude.toFixed(6)} | {region?.longitude.toFixed(6)}
+        </Text> */}
+        <Text style={styles.latLong}>Posição atual:</Text>
         <Text>{texto}</Text>
         <MapView
+          // minZoomLevel={15}
+          loadingEnabled
+          showsUserLocation={true}
           onPress={this.newMarker}
-          showsTraffic={true} // mostrar transito
+          showsTraffic={true}
           style={styles.maps}
           region={region}
-          onRegionChangeComplete={this.mapChanged}>
+          onRegionChangeComplete={this.mapChanged}
+          scrollEnabled={true}
+          zoomEnabled={true}>
           {markers.map(marker => (
             <Marker
               key={marker.key}
@@ -112,10 +124,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#fff',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
   },
   maps: {
     width: '100%',
